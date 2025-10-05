@@ -1,0 +1,31 @@
+# Environments (Anaconda & venv)
+# These are machine-specific and can be huge.
+/ids_env/
+/.venv/
+/env/
+
+# Python cache and compiled files
+# These are auto-generated and not needed.
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Editor-specific files (VS Code)
+# Contains user-specific workspace settings.
+.vscode/
+
+# Secrets and environment variables
+# CRITICAL: Never commit sensitive keys or passwords.
+.env
+*.env
+
+# Data and Trained Models
+# These are often large binary files not suitable for Git.
+/data/
+/models/
+
+# OS-specific files
+# Annoying files created by macOS and Windows.
+.DS_Store
+Thumbs.db
