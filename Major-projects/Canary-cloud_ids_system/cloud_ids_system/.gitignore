@@ -11,19 +11,30 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Editor-specific files (VS Code)
+# Editor & IDE Settings
 # Contains user-specific workspace settings.
 .vscode/
+.idea/
 
 # Secrets and environment variables
 # CRITICAL: Never commit sensitive keys or passwords.
 .env
 *.env
 
+# Application Logs
+# These are generated at runtime and should not be tracked.
+/logs/
+
 # Data and Trained Models
 # These are often large binary files not suitable for Git.
 /data/
 /models/
+
+# Testing & Coverage Reports
+# These are generated each time you run tests.
+.pytest_cache/
+.coverage
+htmlcov/
 
 # OS-specific files
 # Annoying files created by macOS and Windows.
