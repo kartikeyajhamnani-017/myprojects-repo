@@ -1,36 +1,35 @@
-```mermaide
-
+```mermaid
 graph TD
-    %% Styling
-    classDef input fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef core fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
-    classDef storage fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
-    classDef output fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+   %% Styling - High Contrast Professional Palette
+    classDef input fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
+    classDef core fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef storage fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:#000;
+    classDef output fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
 
-    subgraph External_Traffic [Network Layer]
-        Traff[Incoming Traffic / Packets]:::input
+    subgraph External_Traffic ["Network Layer"]
+        Traff["Incoming Traffic / Packets"]:::input
     end
 
-    subgraph Canary_Core [Canary Engine (Go Runtime)]
+    subgraph Canary_Core ["Canary Engine(Go Runtime)"]
         direction TB
-        Listener[Packet Listener / PCAP]:::core
-        Buffer(Buffered Channel / Queue):::core
-        Workers[Concurrent Analysis Workers]:::core
-        Engine{Rule Matching Engine}:::core
+        Listener["Packet Listener / PCAP"]:::core
+        Buffer("Buffered Channel / Queue"):::core
+        Workers["Concurrent Analysis Workers"]:::core
+        Engine{"Rule Matching Engine"}:::core
         
         Listener -->|Raw Bytes| Buffer
         Buffer -->|De-queue| Workers
         Workers -->|Payload Inspection| Engine
     end
 
-    subgraph Configuration [Config Layer]
-        Rules[(Threat Signatures JSON)]:::storage
-        Config[(System Config YAML)]:::storage
+    subgraph Configuration ["Config Layer"]
+        Rules[("Threat Signatures JSON")]:::storage
+        Config[("System Config YAML")]:::storage
     end
 
-    subgraph Outputs [Observability & Alerts]
-        Stdout[Structured Logs (JSON)]:::output
-        Webhook[Webhook / Slack Alert]:::output
+    subgraph Outputs ["Observability & Alerts"]
+        Stdout["Structured Logs (JSON)"]:::output
+        Webhook["Webhook / Slack Alert"]:::output
     end
 
     %% Relationships
@@ -41,4 +40,4 @@ graph TD
     Engine -->|Critical Severity| Webhook
     
     %% Context Note
-    note[High-Throughput / Non-Blocking] -.-> Buffer
+    note["High-Throughput / Non-Blocking"] -.-> Buffer
