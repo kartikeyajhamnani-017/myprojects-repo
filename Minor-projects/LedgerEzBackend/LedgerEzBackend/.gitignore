@@ -31,25 +31,17 @@ build/
 
 ### VS Code ###
 .vscode/
-.env
-db.env
 
-# === Java / Maven Build ===
-# The 'target' folder contains your compiled .jar files
+# --- Spring / Java ---
 /target/
-pom.xml.bak
+*.jar
+*.war
+*.ear
 *.log
 
+# --- CRITICAL: Secrets ---
+# Never, ever commit your environment files.
+db.env
+.env
 
-
-#=== Operating System ===
-.DS_Store
-Thumbs.db
-
-# === Other ===
-# Maven wrapper (if you don't share it)
-.mvn/
-mvnw
-mvnw.cmd
-
-#docker run --env-file ./db.env -p 9000:9000 internalflagmanager
+#docker run --env-file ./db.env -p 9000:9000 ledgerez-backend

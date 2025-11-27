@@ -31,25 +31,3 @@ build/
 
 ### VS Code ###
 .vscode/
-.env
-db.env
-
-# === Java / Maven Build ===
-# The 'target' folder contains your compiled .jar files
-/target/
-pom.xml.bak
-*.log
-
-
-
-#=== Operating System ===
-.DS_Store
-Thumbs.db
-
-# === Other ===
-# Maven wrapper (if you don't share it)
-.mvn/
-mvnw
-mvnw.cmd
-
-#docker run --env-file ./db.env -p 9000:9000 internalflagmanager
