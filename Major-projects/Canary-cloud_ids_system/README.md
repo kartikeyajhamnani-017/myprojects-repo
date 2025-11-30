@@ -16,7 +16,7 @@ The long-term goal of Canary is to evolve into a fully autonomous, cloud-native 
 * Adapts the deception environment based on attacker behavior
 * Automatically updates edge defenses across the cloud
 
-Below is the future-state architecture implemented in Google Cloud (GCP), as shown in the system diagram.
+Below is the future-state architecture implemented in Google Cloud (GCP), as shown in the System Architecture diagram.
 
 ---
 
@@ -143,7 +143,7 @@ It is a unique intersection of:
 ---
 
 
-###Fiugre 1
+###  The System Architecture diagram 
 ```mermaid 
 flowchart TD
 
