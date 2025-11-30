@@ -48,8 +48,7 @@ sudo ./bin/canary --iface eth0 --workers 5
 
 
 
-
-
+### Figure 1 :
 ```mermaid
 graph TD
    %% Styling - High Contrast Professional Palette
