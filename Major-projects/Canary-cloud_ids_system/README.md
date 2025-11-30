@@ -1,100 +1,208 @@
-# Canary: Cloud-Native Intrusion Detection System (IDS)
-A high-throughput, rule-based intrusion detection engine built in Go. Designed for low-latency packet inspection in Kubernetes environments.
+# 🛡️ **Canary: Cloud-Native Intrusion Detection & Active Defense System**
 
-Canary is a lightweight IDS engineered to run as a Kubernetes Sidecar or DaemonSet. Unlike traditional, resource-heavy NIDS (Network Intrusion Detection Systems), Canary leverages Go's concurrency primitives to process network traffic in real-time with minimal CPU footprint. It decouples packet ingestion from analysis using buffered channels, ensuring resiliency against traffic bursts and preventing head-of-line blocking.
+Canary is a next-generation **active defense and deception platform** designed to operate like a **cloud-native immune system**.
+Instead of relying on static firewall rules or signature-based IDS modules, Canary **diverts**, **analyzes**, **learns**, and **adapts** to adversarial behavior—continuously strengthening infrastructure defenses in real time.
 
-## 🏗️ Architecture
-Canary operates on a Producer-Consumer model to maximize throughput. The system is divided into three decoupled layers: Ingestion, Buffering, and Analysis.
+This project explores the future of intelligent cloud security through a **Divert → Detect → Defend → Adapt** pipeline.
 
-Figure 1: High-Level Event-Driven Pipeline showing the non-blocking data flow.
+---
 
-Core Design Decisions
-Ingestion Layer (The Producer): The Packet Listener runs in Promiscuous Mode, capturing raw frames from the network interface via gopacket. It operates on a dedicated Goroutine to ensure that I/O operations never block the analysis logic.
+## 🏗️ **Architectural Vision (Long-Term Roadmap)**
 
-Buffering Layer (The Shock Absorber): To handle micro-bursts of traffic (common in cloud environments), raw packets are pushed into a Buffered Channel (size: 1024 by default). This acts as a queue, providing backpressure handling. If the analysis workers are saturated, the buffer absorbs the spike, preventing immediate packet drops.
+The long-term goal of Canary is to evolve into a fully autonomous, cloud-native defense system that:
 
-Analysis Layer (The Consumer Pool): A configurable pool of Concurrent Worker Goroutines reads from the buffer. This parallelization allows Canary to scale across multi-core CPUs, performing regex matching and signature analysis simultaneously on multiple packets.
+* Transparently diverts suspicious traffic to a honeynet
+* Performs advanced ML-based behavioral and intent analysis
+* Adapts the deception environment based on attacker behavior
+* Automatically updates edge defenses across the cloud
 
-Observability First: All alerts and logs are emitted as Structured JSON, making Canary natively compatible with log aggregators like Elasticsearch (ELK), Loki, or Fluentd without requiring complex parsing rules.
+Below is the future-state architecture implemented in Google Cloud (GCP), as shown in the system diagram.
 
-## 🚀 Key Features
-⚡ Non-Blocking I/O: Utilizes Go channels to prevent the packet capture loop from stalling during heavy analysis loads.
+---
 
-🐳 Container-Ready: Designed with a small binary footprint (built on distroless or alpine) for efficient sidecar deployment.
+### 🔀 **Divert — Intelligent Traffic Steering**
 
-🛡️ Rule-Based Engine: Supports hot-reloading of threat signatures defined in simple JSON/YAML configuration.
+* **Google Cloud Load Balancer (GCLB)** routes legitimate users to production.
+* Suspicious or anomalous traffic is silently redirected to the **Canary Honeynet**, isolating and containing adversaries.
 
-🔍 Port Scan Detection: Built-in heuristic engine to detect rapid connection attempts (Nmap/Netcat scans) in real-time.
+---
 
-## 🛠️ Quick Start
-Prerequisites: libpcap-dev (Linux) or npcap (Windows).
+### 🧠 **Detect — Multi-Layer Behavioral Analytics**
 
-Bash
+Captured honeypot events are published to **Cloud Pub/Sub**, where multiple analysis pipelines operate:
 
-### 1. Clone the repository
-git clone https://github.com/yourusername/canary-ids.git
+#### **ML Engine (Cloud Run)**
 
-### 2. Build the binary
-make build
+* Performs attacker classification and behavior modeling.
+* Generates high-confidence malicious intent predictions.
 
-### 3. Run in Audit Mode (Requires sudo for promiscuous mode)
-sudo ./bin/canary --iface eth0 --workers 5
-🔮 Roadmap
-[ ] eBPF Integration: Migrating packet capture from user-space (pcap) to kernel-space (eBPF/XDP) for zero-copy performance.
+#### **Intent Analysis (Cloud Function)**
 
-[ ] Prometheus Exporter: Exposing metrics for packets_captured_total, packets_dropped, and alerts_triggered.
+* Extracts the attacker’s objectives (reconnaissance, password spraying, exploitation attempts).
+* Maps intent to an appropriate deception response.
 
-[ ] gRPC API: Enabling dynamic rule injection from a central control plane.
+#### **BigQuery Logs**
+
+* Acts as the long-term data lake for threat hunting, dashboards, and retrospective analysis.
+
+---
+
+### 🔁 **Adapt — Dynamic Deception Surface**
+
+* The **Adaptation Controller** adjusts honeypot responses and fingerprints (banners, protocols, delays, errors).
+* Produces an environment that continuously evolves, slowing down attackers and increasing visibility.
+
+---
+
+###  🛡 **Defend — Automated Remediation Pipeline**
+
+A high-confidence malicious event flows through:
+
+`ML Engine → Security Command Center → Response Cloud Function → Cloud Armor WAF`
+
+This pipeline automatically updates WAF rules to block future attacks **at the edge**, across all services, with no manual intervention.
+
+---
+
+## 🚀 **Current Release: v0.1.0 (MVP)**
+
+The current version focuses on the **core detection and containment substrate** that will scale into the full cloud-native architecture.
+
+This MVP is intentionally lightweight—but architecturally aligned—so contributors can extend real components toward the vision.
+
+---
+
+### ⚙️ **1. High-Performance Honeypot (Go)**
+
+* Concurrent, event-driven trap service emulating SSH & HTTP endpoints.
+* Captures brute-force attempts, scanning behavior, and early-stage recon.
+* Designed to scale horizontally as the Canary Honeynet evolves.
+
+---
+
+### 🧩 **2. Analysis Engine (Python)**
+
+* Normalizes raw honeypot telemetry into structured JSON events.
+* Includes a rule-based detection layer capable of:
+
+  * port scanning detection
+  * brute-force / dictionary attempts
+  * reconnaissance patterns
+
+This forms the foundation for the ML and intent-analysis pipelines.
+
+---
+
+### 🐳 **3. Containerized Architecture**
+
+* Fully Dockerized with isolated microservices (`Trap` and `Brain`).
+* Communicate via a secure internal virtual network.
+* Enables reproducible development, CI/CD integration, and cloud deployment.
+
+---
+
+### 🚫 **4. Mock Defense Layer**
+
+* Simulates a Cloud Armor–style blocklist using `blocklist.json`.
+* Automatically blocks flagged IPs inside the container network.
+* Serves as a functional prototype for the future remediation pipeline.
+
+---
+
+## 🔄 **How the MVP Connects to the Vision**
+
+| MVP Component       | Future Vision Component              |
+| ------------------- | ------------------------------------ |
+| Go honeypot         | Canary Honeynet Cluster              |
+| Python rules engine | ML Engine + Intent Analysis          |
+| Docker services     | Cloud Run + Cloud Functions          |
+| Local blocklist     | Cloud Armor WAF automation           |
+| JSON logs           | Pub/Sub → BigQuery pipeline          |
+| Basic detection     | Adaptive deception + SCC integration |
+
+The MVP is **not a separate prototype**—it is the **base layer of the final architecture**, intentionally engineered so every component can be replaced or scaled into a cloud-native equivalent.
+
+---
+
+## 🤝 **Why This Project Matters**
+
+* Modern cloud attacks are orchestrated, automated, and behavior-driven.
+* Defense systems must evolve beyond static signatures and slow manual responses.
+* Canary demonstrates how cloud-native primitives + ML + deception can build a **self-learning, self-healing defense system**.
+
+It is a unique intersection of:
+
+* Cloud security
+* Machine learning
+* Distributed systems
+* Deception technology
+* Automation & response engineering
 
 
 
-### Figure 1 :
-```mermaid
+---
+
+
+###Fiugre 1
+```mermaid 
 flowchart TD
+
+    %% =========================
     %% Nodes
+    %% =========================
     User([User / Attacker])
     GCLB[Google Cloud Load Balancer]
     WAF[Cloud Armor WAF]
-    
-    subgraph "Production Environment"
+
+    subgraph Production[Production Environment]
         App[Portfolio Application]
     end
 
-    subgraph "Canary Honeynet (The Trap)"
+    subgraph Honeynet[Canary Honeynet - The Trap]
         Honeypot[Go Honeypot Cluster]
-        style Honeypot fill:#f9f,stroke:#333,stroke-width:2px
     end
 
-    subgraph "GCP Backend (The Brain)"
+    subgraph Backend[GCP Backend - The Brain]
         PubSub[Cloud Pub/Sub]
-        ML[Python ML Engine [Cloud Run]]
-        Intent[Intent Analysis [Cloud Function]]
+        ML[Python ML Engine - Cloud Run]
+        Intent[Intent Analysis - Cloud Function]
         Adapt[Adaptation Controller]
         BigQuery[BigQuery Logs]
         SCC[Security Command Center]
         Response[Response Cloud Function]
     end
 
-    %% Edge Connections
+
+    %% =========================
+    %% Edges
+    %% =========================
     User --> GCLB
     GCLB -->|Clean Traffic| App
     GCLB -->|Suspicious Traffic| Honeypot
-    
-    %% The Trap Logic
+
     Honeypot -->|Raw Logs| PubSub
     PubSub --> Intent
     PubSub --> ML
     PubSub --> BigQuery
-    
-    %% The Feedback Loops
+
     Intent -->|Deception Command| Adapt
     Adapt -->|Morph Environment| Honeypot
-    
+
     ML -->|High Confidence Alert| SCC
     SCC -->|Trigger Defense| Response
     Response -->|Update Blocklist| WAF
     WAF -.->|Block Future Attacks| GCLB
 
-    %% Styling
-    classDef cloud fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+
+    %% =========================
+    %% Styling (Vibrant Theme)
+    %% =========================
+    classDef cloud fill:#c7ebff,stroke:#0077b6,stroke-width:2px,color:#003049;
+    classDef trap fill:#ffb3e6,stroke:#b30086,stroke-width:2px,color:#4a0035;
+    classDef prod fill:#d2f8d2,stroke:#1b5e20,stroke-width:2px,color:#003300;
+    classDef backend fill:#e6ccff,stroke:#5a189a,stroke-width:2px,color:#240046;
+
     class GCLB,WAF,PubSub,ML,Intent,Adapt,SCC,Response cloud;
+    class Honeypot trap;
+    class App prod;
+    class BigQuery backend;
