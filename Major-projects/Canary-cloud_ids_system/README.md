@@ -50,45 +50,51 @@ sudo ./bin/canary --iface eth0 --workers 5
 
 ### Figure 1 :
 ```mermaid
-graph TD
-   %% Styling - High Contrast Professional Palette
-    classDef input fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
-    classDef core fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
-    classDef storage fill:#fff8e1,stroke:#ff8f00,stroke-width:2px,color:#000;
-    classDef output fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#000;
-
-    subgraph External_Traffic ["Network Layer"]
-        Traff["Incoming Traffic / Packets"]:::input
-    end
-
-    subgraph Canary_Core ["Canary Engine(Go Runtime)"]
-        direction TB
-        Listener["Packet Listener / PCAP"]:::core
-        Buffer("Buffered Channel / Queue"):::core
-        Workers["Concurrent Analysis Workers"]:::core
-        Engine{"Rule Matching Engine"}:::core
-        
-        Listener -->|Raw Bytes| Buffer
-        Buffer -->|De-queue| Workers
-        Workers -->|Payload Inspection| Engine
-    end
-
-    subgraph Configuration ["Config Layer"]
-        Rules[("Threat Signatures JSON")]:::storage
-        Config[("System Config YAML")]:::storage
-    end
-
-    subgraph Outputs ["Observability & Alerts"]
-        Stdout["Structured Logs (JSON)"]:::output
-        Webhook["Webhook / Slack Alert"]:::output
-    end
-
-    %% Relationships
-    Traff -->|Promiscuous Mode| Listener
-    Rules -.->|Load on Start| Engine
-    Config -.->|Init| Listener
-    Engine -->|Match Found| Stdout
-    Engine -->|Critical Severity| Webhook
+flowchart TD
+    %% Nodes
+    User([User / Attacker])
+    GCLB[Google Cloud Load Balancer]
+    WAF[Cloud Armor WAF]
     
-    %% Context Note
-    note["High-Throughput / Non-Blocking"] -.-> Buffer
+    subgraph "Production Environment"
+        App[Portfolio Application]
+    end
+
+    subgraph "Canary Honeynet (The Trap)"
+        Honeypot[Go Honeypot Cluster]
+        style Honeypot fill:#f9f,stroke:#333,stroke-width:2px
+    end
+
+    subgraph "GCP Backend (The Brain)"
+        PubSub[Cloud Pub/Sub]
+        ML[Python ML Engine [Cloud Run]]
+        Intent[Intent Analysis [Cloud Function]]
+        Adapt[Adaptation Controller]
+        BigQuery[BigQuery Logs]
+        SCC[Security Command Center]
+        Response[Response Cloud Function]
+    end
+
+    %% Edge Connections
+    User --> GCLB
+    GCLB -->|Clean Traffic| App
+    GCLB -->|Suspicious Traffic| Honeypot
+    
+    %% The Trap Logic
+    Honeypot -->|Raw Logs| PubSub
+    PubSub --> Intent
+    PubSub --> ML
+    PubSub --> BigQuery
+    
+    %% The Feedback Loops
+    Intent -->|Deception Command| Adapt
+    Adapt -->|Morph Environment| Honeypot
+    
+    ML -->|High Confidence Alert| SCC
+    SCC -->|Trigger Defense| Response
+    Response -->|Update Blocklist| WAF
+    WAF -.->|Block Future Attacks| GCLB
+
+    %% Styling
+    classDef cloud fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    class GCLB,WAF,PubSub,ML,Intent,Adapt,SCC,Response cloud;
