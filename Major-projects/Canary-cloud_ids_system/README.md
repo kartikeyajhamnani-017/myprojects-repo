@@ -64,7 +64,7 @@ This pipeline automatically updates WAF rules to block future attacks **at the e
 
 ---
 
-## 🚀 **Current Release: v0.1.0 (MVP)**
+## 🚀 **Current Release:  (MVP)**
 
 The current version focuses on the **core detection and containment substrate** that will scale into the full cloud-native architecture.
 
