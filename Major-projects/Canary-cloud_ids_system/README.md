@@ -3,7 +3,7 @@
 Canary is a next-generation **active defense and deception platform** designed to operate like a **cloud-native immune system**.
 Instead of relying on static firewall rules or signature-based IDS modules, Canary **diverts**, **analyzes**, **learns**, and **adapts** to adversarial behavior—continuously strengthening infrastructure defenses in real time.
 
-This project explores the future of intelligent cloud security through a **Divert → Detect → Defend → Adapt** pipeline.
+> **Note:** This project explores the future of intelligent cloud security through a **Divert → Detect → Defend → Adapt** pipeline.
 
 ---
 
@@ -142,8 +142,7 @@ It is a unique intersection of:
 
 ---
 
-
-###  The System Architecture diagram 
+## 📊 System Diagram
 ```mermaid 
 flowchart TD
 
