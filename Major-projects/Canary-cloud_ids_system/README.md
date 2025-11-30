@@ -68,7 +68,6 @@ This pipeline automatically updates WAF rules to block future attacks **at the e
 
 The current version focuses on the **core detection and containment substrate** that will scale into the full cloud-native architecture.
 
-This MVP is intentionally lightweight—but architecturally aligned—so contributors can extend real components toward the vision.
 
 ---
 
