@@ -43,7 +43,7 @@ For real-world operational readiness, Nexus is designed to integrate:
 
 
 
-## 🚀 Current Release: v0.1.0 (MVP)
+## 🚀 Current Release(MVP): 
 
 Current Development Phase: Polyglot Foundation & Event Loop
 
