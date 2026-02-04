@@ -1,0 +1,77 @@
+services:
+  # ------------------------------------------------------------
+  # 1. PostgreSQL (For Order Service & Inventory Service)
+  # ------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: nexus-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=nexus_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nexus-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d nexus_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ------------------------------------------------------------
+  # 2. MongoDB (For Product Service)
+  # ------------------------------------------------------------
+  mongo:
+    image: mongo:6.0
+    container_name: nexus-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - nexus-net
+
+  # ------------------------------------------------------------
+  # 3. RabbitMQ (Event Broker)
+  # ------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: nexus-rabbitmq
+    ports:
+      - "5672:5672"    # AMQP protocol port (for Java apps)
+      - "15672:15672"  # Management UI (Browser)
+    networks:
+      - nexus-net
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # ------------------------------------------------------------
+  # 4. Redis (For Caching/Future use)
+  # ------------------------------------------------------------
+  redis:
+    image: redis:alpine
+    container_name: nexus-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - nexus-net
+
+# ------------------------------------------------------------
+# NETWORKS & VOLUMES
+# ------------------------------------------------------------
+networks:
+  nexus-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mongo_data:

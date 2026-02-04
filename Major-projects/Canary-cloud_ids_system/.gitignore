@@ -1,0 +1,27 @@
+canary-ids/
+├── docker-compose.yml          # Orchestrates Trap, Brain, and Networking
+├── .env                        # Environment variables (Ports, API keys, etc.)
+├── README.md
+├── blocklist.json              # Shared mock defense file (mounted to containers)
+│
+├── canary-trap/                # [Service 1] High-Performance Honeypot (Go)
+│   ├── cmd/
+│   │   └── server/
+│   │       └── main.go         # Entry point for the Honeypot
+│   ├── internal/
+│   │   ├── ssh/                # SSH emulation logic
+│   │   ├── http/               # HTTP emulation logic
+│   │   └── logger/             # Structured logging
+│   ├── go.mod
+│   ├── go.sum
+│   └── Dockerfile              # Multi-stage Docker build for Go
+│
+└── canary-brain/               # [Service 2] Analysis Engine (Python)
+    ├── src/
+    │   ├── main.py             # Entry point for the Analyzer
+    │   ├── ingestor.py         # Normalizes logs from Trap
+    │   ├── detector.py         # Rule-based detection logic
+    │   └── utils.py
+    ├── tests/
+    ├── requirements.txt
+    └── Dockerfile              # Python runtime image
