@@ -213,6 +213,9 @@ If asked: **“Why unsupervised?”**
 
 # How to setup :
 * clone the repo
-* cd Cloud-trail
-* pip install -r requirements.txt
-* python main.py
+
+```bash
+cd Cloud-trail
+pip install -r requirements.txt
+python main.py
+```
