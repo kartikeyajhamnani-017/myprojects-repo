@@ -107,7 +107,13 @@ def extract_sql_features(payload):
     SQL injection specific features.
     13 features.
     """
-    payload_upper = payload.upper()
+    decoded = payload
+    for _ in range(2):
+        new_decoded = unquote(decoded)
+        if new_decoded == decoded:
+            break
+        decoded = new_decoded
+    payload_upper = decoded.upper()
 
     features = {
         # SQL Keywords
@@ -119,15 +125,15 @@ def extract_sql_features(payload):
         'sql_exec_count': payload_upper.count('EXEC'),
 
         # SQL Operators / Syntax
-        'sql_single_quote_count': payload.count("'"),
-        'sql_comment_count': payload.count('--') + payload.count('/*'),
-        'sql_semicolon_count': payload.count(';'),
-        'sql_equals_count': payload.count('='),
+        'sql_single_quote_count': decoded.count("'"),
+        'sql_comment_count': decoded.count('--') + decoded.count('/*'),
+        'sql_semicolon_count': decoded.count(';'),
+        'sql_equals_count': decoded.count('='),
 
         # SQL Injection Patterns
-        'sql_or_pattern': 1 if re.search(r"'\s*OR\s*['1]", payload, re.IGNORECASE) else 0,
-        'sql_union_select': 1 if re.search(r'UNION.*SELECT', payload, re.IGNORECASE) else 0,
-        'sql_always_true': 1 if re.search(r"1\s*=\s*1|'1'\s*=\s*'1'", payload) else 0,
+        'sql_or_pattern': 1 if re.search(r"'\s*OR\s*['1]", decoded, re.IGNORECASE) else 0,
+        'sql_union_select': 1 if re.search(r'UNION.*SELECT', decoded, re.IGNORECASE) else 0,
+        'sql_always_true': 1 if re.search(r"1\s*=\s*1|'1'\s*=\s*'1'", decoded) else 0,
     }
 
     return features
@@ -243,10 +249,14 @@ def extract_ngram_features(payload):
     payload_lower = payload.lower()
 
     for ngram in config.DANGEROUS_NGRAMS:
-        feature_name = (
-            f"ngram_{ngram.replace(' ', '_').replace('/', 'slash')
-                           .replace('<', 'lt').replace('>', 'gt')}"
+        cleaned = (
+            ngram.replace(" ", "_")
+                 .replace("/", "slash")
+                 .replace("<", "lt")
+                 .replace(">", "gt")
         )
+
+        feature_name = f"ngram_{cleaned}"
         features[feature_name] = 1 if ngram.lower() in payload_lower else 0
 
     return features

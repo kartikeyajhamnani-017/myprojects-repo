@@ -18,14 +18,17 @@ class MLAnomalyDetector:
     Uses Isolation Forest on 60+ features
     """
     
-    def __init__(self, model_path=None):
+    def __init__(self, model_path=None, protocol="HTTP"):
         """
         Initialize ML detector
         
         Args:
             model_path: Path to saved model (if None, creates new model)
+            protocol:   'HTTP', 'SSH', or 'DNS' — determines which feature
+                        extractor and feature names are used
         """
-        self.feature_names = get_feature_names()
+        self.protocol = protocol.upper().strip()
+        self.feature_names = get_feature_names(protocol=self.protocol)
         self.model = None
         self.scaler = StandardScaler()
         self.is_trained = False
@@ -58,6 +61,7 @@ class MLAnomalyDetector:
             dict: Training statistics
         """
         print(f"[INFO] Extracting features from {len(payloads)} payloads...")
+        print(f"[INFO] Protocol: {self.protocol} ({len(self.feature_names)} features)")
         
         # Extract features
         X = []
@@ -65,7 +69,7 @@ class MLAnomalyDetector:
             if i % 100 == 0:
                 print(f"  Progress: {i}/{len(payloads)}")
             
-            features = extract_all_features(payload)
+            features = extract_all_features(payload, protocol=self.protocol)
             feature_vector = features_to_vector(features, self.feature_names)
             X.append(feature_vector)
         
@@ -139,7 +143,7 @@ class MLAnomalyDetector:
         self.stats['total_predictions'] += 1
         
         # Extract features
-        features = extract_all_features(payload)
+        features = extract_all_features(payload, protocol=self.protocol)
         feature_vector = features_to_vector(features, self.feature_names)
         
         # Normalize
@@ -170,15 +174,30 @@ class MLAnomalyDetector:
             'layer': 'ML Anomaly Detection (Layer 2)'
         }
     
-    def save_model(self, model_path=None, scaler_path=None):
-        """Save trained model and scaler to disk"""
-        if model_path is None:
-            model_path = config.MODEL_PATH
-        if scaler_path is None:
-            scaler_path = config.SCALER_PATH
+    def save_model(self, filename=None, model_path=None, scaler_path=None):
+        """Save trained model and scaler to disk
+        
+        Args:
+            filename:   Base filename e.g. 'sentinel_model_ssh.pkl'
+                        If provided, auto-derives scaler path from it.
+            model_path: Explicit model path (overrides filename and config)
+            scaler_path: Explicit scaler path (overrides filename and config)
+        """
+        
+        if filename:
+            base = os.path.join(config.MODEL_DIR, os.path.basename(filename).replace('.pkl', ''))
+            model_path  = f"{base}.pkl"
+            scaler_path = f"{base}_scaler.pkl"
+        else:
+           if model_path is None:
+              model_path = config.MODEL_PATHS[self.protocol]
+           if scaler_path is None:
+              scaler_path = config.SCALER_PATHS[self.protocol]
         
         # Create directory if needed
-        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        dir_name = os.path.dirname(model_path)
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
         
         # Save model
         with open(model_path, 'wb') as f:
@@ -188,15 +207,28 @@ class MLAnomalyDetector:
         with open(scaler_path, 'wb') as f:
             pickle.dump(self.scaler, f)
         
-        print(f"[SUCCESS] Model saved to {model_path}")
-        print(f"[SUCCESS] Scaler saved to {scaler_path}")
+        print(f"[SUCCESS] Model  saved → {model_path}")
+        print(f"[SUCCESS] Scaler saved → {scaler_path}")
     
-    def load_model(self, model_path=None, scaler_path=None):
-        """Load trained model and scaler from disk"""
-        if model_path is None:
-            model_path = config.MODEL_PATH
-        if scaler_path is None:
-            scaler_path = config.SCALER_PATH
+    def load_model(self, filename=None, model_path=None, scaler_path=None):
+        """Load trained model and scaler from disk
+        
+        Args:
+            filename:   Base filename e.g. 'sentinel_model_ssh.pkl'
+                        If provided, auto-derives scaler path from it.
+            model_path: Explicit model path (overrides filename and config)
+            scaler_path: Explicit scaler path (overrides filename and config)
+        """
+        if filename:
+            base = os.path.join(config.MODEL_DIR, os.path.basename(filename).replace('.pkl', ''))
+            model_path  = f"{base}.pkl"
+            scaler_path = f"{base}_scaler.pkl"
+       
+        else:
+           if model_path is None:
+              model_path = config.MODEL_PATHS[self.protocol]
+           if scaler_path is None:
+              scaler_path = config.SCALER_PATHS[self.protocol]
         
         # Load model
         with open(model_path, 'rb') as f:
@@ -207,8 +239,8 @@ class MLAnomalyDetector:
             self.scaler = pickle.load(f)
         
         self.is_trained = True
-        print(f"[SUCCESS] Model loaded from {model_path}")
-        print(f"[SUCCESS] Scaler loaded from {scaler_path}")
+        print(f"[SUCCESS] Model  loaded ← {model_path}")
+        print(f"[SUCCESS] Scaler loaded ← {scaler_path}")
     
     def get_stats(self):
         """Return prediction statistics"""

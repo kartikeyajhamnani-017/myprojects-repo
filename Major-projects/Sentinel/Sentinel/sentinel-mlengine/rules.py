@@ -60,19 +60,55 @@ class RuleBasedFilter:
         }
     
     def _classify_attack_type(self, keyword):
-        """Classify attack type based on matched keyword"""
-        keyword_lower = keyword.lower()
+        """Classify attack type based on matched keyword.
         
-        if any(sql in keyword_lower for sql in ['select', 'union', 'drop', 'insert', 'exec']):
+        Order matters: more specific protocols (SSH, DNS) are checked
+        BEFORE generic patterns (command injection) to prevent substring
+        false matches e.g. 'sh' inside 'libssh'.
+        """
+        keyword_lower = keyword.lower()
+
+        # ── SSH — checked FIRST, before command injection ─────────────────────
+        # Must come before cmd check: 'libssh' contains 'sh',
+        # 'blowfish' would match 'sh' 
+        _SSH_KEYWORDS = [
+            'libssh', 'ssh-1.99', 'ssh-2.0-masscan',
+            'direct-tcpip', 'forwarded-tcpip', 'tcpip-forward',
+            'diffie-hellman-group1', 'arcfour', 'blowfish-cbc',
+            'root:root', 'admin:admin', 'root:toor', 'admin:password',
+        ]
+        if any(kw in keyword_lower for kw in _SSH_KEYWORDS):
+            return 'SSH Exploit / Credential Attack'
+
+        # ── DNS — checked before generic patterns ─────────────────────────────
+        _DNS_KEYWORDS = [
+            '.tunnel.', '.exfil.', 'dnscat', 'iodine',
+            'any isc.org', 'any google.com', 'null encodedpayload',
+        ]
+        if any(kw in keyword_lower for kw in _DNS_KEYWORDS):
+            return 'DNS Tunneling / Amplification'
+
+        # ── SQL Injection ──────────────────────────────────────────────────────
+        # Use \b word boundaries so 'select' doesn't match inside 'deselect' etc.
+        if re.search(r'\b(select|union|drop|insert|exec|xp_cmdshell)\b', keyword_lower):
             return 'SQL Injection'
-        elif any(xss in keyword_lower for xss in ['script', 'javascript', 'onerror', 'onload']):
+
+        # ── XSS ───────────────────────────────────────────────────────────────
+        if re.search(r'\b(script|javascript|onerror|onload|alert)\b', keyword_lower):
             return 'Cross-Site Scripting (XSS)'
-        elif any(cmd in keyword_lower for cmd in ['cat', 'bash', 'sh', 'wget', 'curl']):
+
+        # ── Command Injection ─────────────────────────────────────────────────
+        # \b prevents 'sh' matching inside 'libssh', 'bash' inside 'libssh' etc.
+        if re.search(r'\b(cat|bash|sh|wget|curl|whoami|chmod|bin)\b', keyword_lower):
             return 'Command Injection'
-        elif '../' in keyword_lower or '..\\' in keyword_lower:
+
+        # ── Path Traversal ────────────────────────────────────────────────────
+        if '../' in keyword_lower or '..\\' in keyword_lower:
             return 'Path Traversal'
-        else:
-            return 'Unknown'
+
+        # ── Fallback ──────────────────────────────────────────────────────────
+        return 'Unknown Attack'
+        
     
     def map_to_mitre(self, payload):
         """

