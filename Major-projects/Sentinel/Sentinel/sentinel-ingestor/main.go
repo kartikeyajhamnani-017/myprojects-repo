@@ -15,6 +15,7 @@ var ctx = context.Background()
 var redisClient *redis.Client
 
 // LogEntry represents the data coming in from the network
+
 type LogEntry struct {
 	SourceIP    string `json:"source_ip"`
 	Timestamp   string `json:"timestamp"`
@@ -80,4 +81,6 @@ func main() {
 	if err := http.ListenAndServe(port, nil); err != nil {
 		log.Fatal(err)
 	}
+	/*docker run -d --name sentinel-redis -v sentinel-data:/data -p 6379:6379 redis:7-alpine redis-server --appendonly yes*/
+
 }
